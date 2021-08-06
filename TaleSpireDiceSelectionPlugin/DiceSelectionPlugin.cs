@@ -14,7 +14,7 @@ namespace LordAshes
     {
         // Plugin info
         public const string Guid = "org.lordashes.plugins.diceselection";
-        public const string Version = "1.0.1.0";
+        public const string Version = "1.0.2.0";
 
         // Content directory
         private string dir = UnityEngine.Application.dataPath.Substring(0, UnityEngine.Application.dataPath.LastIndexOf("/")) + "/TaleSpire_CustomData/";
@@ -132,6 +132,12 @@ namespace LordAshes
 
         public void CreateDice(string name, string formula)
         {
+            if (formula == "?")
+            {
+                SystemMessage.AskForTextInput("Roll...", "Roll Formula:", "OK", (manualFormula) => CreateDice(name, manualFormula),null,"Cancel",null,"");
+                return;
+            }
+
             Debug.Log("Dice Selection '"+name+"' Activated Which Rolls '"+formula+"'");
             System.Diagnostics.Process p = new System.Diagnostics.Process();
             p.StartInfo = new System.Diagnostics.ProcessStartInfo()
