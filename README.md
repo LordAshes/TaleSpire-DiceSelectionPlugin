@@ -7,6 +7,7 @@ dice tray and display the result with the combo name and add/subtract any modifi
 ## Change Log
 
 1.1.0: Multi column support
+
 1.0.0: Initial release
 
 ## Install
