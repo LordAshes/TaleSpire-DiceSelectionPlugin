@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 namespace LordAshes
 {
-    public static class StateDetection
+    public partial class DiceSelectionPlugin : BaseUnityPlugin
     {
         public static void Initialize(System.Reflection.MemberInfo plugin)
         {

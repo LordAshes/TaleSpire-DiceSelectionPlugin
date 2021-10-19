@@ -10,11 +10,11 @@ namespace LordAshes
 {
     [BepInPlugin(Guid, "Dice Selection Plug-In", Version)]
     [BepInDependency(FileAccessPlugin.Guid)]
-    public class DiceSelectionPlugin : BaseUnityPlugin
+    public partial class DiceSelectionPlugin : BaseUnityPlugin
     {
         // Plugin info
         public const string Guid = "org.lordashes.plugins.diceselection";
-        public const string Version = "1.0.2.0";
+        public const string Version = "1.1.0.0";
 
         // Content directory
         private string dir = UnityEngine.Application.dataPath.Substring(0, UnityEngine.Application.dataPath.LastIndexOf("/")) + "/TaleSpire_CustomData/";
@@ -22,6 +22,8 @@ namespace LordAshes
         private ConfigEntry<KeyboardShortcut> trigger;
 
         private bool showMenu = false;
+
+        int perColumn = 11;
 
         private Dictionary<string, string[]> rollMacrosByCharaceter = new Dictionary<string, string[]>();
 
@@ -34,6 +36,10 @@ namespace LordAshes
             UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin Active.");
 
             trigger = Config.Bind("Hotkeys", "Open Roll Menu", new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl));
+
+            perColumn = Config.Bind("Settings", "Entries Per Column", 11).Value;
+
+            LordAshes.DiceSelectionPlugin.Initialize(this.GetType());
         }
 
         /// <summary>
@@ -109,23 +115,27 @@ namespace LordAshes
                 gs2.fontSize = 14;
                 gs2.border = new RectOffset() { top = 5, bottom = 5, left = 5, right = 5 };
 
+                int xOffset = (1920-((int)Math.Ceiling(rollMacros.Count()/(decimal)perColumn)*310))/2;
+                int yOffset = 0;
                 for (int i = 0; i < rollMacros.Length; i++)
                 {
                     if (rollMacros[i] != "")
                     {
-                        if (GUI.Button(new Rect(810, 50 + (i * 80), 300, 40), GetName(rollMacros[i]), gs1))
+                        if (GUI.Button(new Rect(5 + xOffset, 50 + yOffset, 300, 40), GetName(rollMacros[i]), gs1))
                         {
                             showMenu = false;
                             CreateDice(GetName(rollMacros[i]), GetFormula(rollMacros[i]));
                             break;
                         }
-                        if (GUI.Button(new Rect(810, 50 + 40 + (i * 80), 300, 25), GetFormula(rollMacros[i]), gs2))
+                        if (GUI.Button(new Rect(5 + xOffset, 50 + 40 + yOffset, 300, 25), GetFormula(rollMacros[i]), gs2))
                         {
                             showMenu = false;
                             CreateDice(GetName(rollMacros[i]), GetFormula(rollMacros[i]));
                             break;
                         }
                     }
+                    yOffset = yOffset + 80;
+                    if (yOffset > perColumn * 80) { yOffset = 0; xOffset = xOffset + 310; }
                 }
             }
         }
