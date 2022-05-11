@@ -5,11 +5,11 @@ This unofficial TaleSpire plugin that allows you to open a generic or character 
 dice tray and display the result with the combo name and add/subtract any modifier.
 
 ## Change Log
-
+```
+2.0.0: Fix after BR HF Integration update
 1.1.0: Multi column support
-
 1.0.0: Initial release
-
+```
 ## Install
 
 Use R2ModMan or similar installer to install this plugin.
