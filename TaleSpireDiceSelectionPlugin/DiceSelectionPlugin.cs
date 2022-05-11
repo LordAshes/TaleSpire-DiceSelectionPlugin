@@ -14,12 +14,14 @@ namespace LordAshes
     {
         // Plugin info
         public const string Guid = "org.lordashes.plugins.diceselection";
-        public const string Version = "1.1.0.0";
+        public const string Version = "2.0.0.0";
 
         // Content directory
         private string dir = UnityEngine.Application.dataPath.Substring(0, UnityEngine.Application.dataPath.LastIndexOf("/")) + "/TaleSpire_CustomData/";
 
         private ConfigEntry<KeyboardShortcut> trigger;
+
+        private int updateInterval = 5000;
 
         private bool showMenu = false;
 
@@ -27,15 +29,19 @@ namespace LordAshes
 
         private Dictionary<string, string[]> rollMacrosByCharaceter = new Dictionary<string, string[]>();
 
+        private DateTime lastUpdateTime = DateTime.MinValue;
+
         /// <summary>
         /// Function for initializing plugin
         /// This function is called once by TaleSpire
         /// </summary>
         public void Awake()
         {
-            UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin Active.");
+            UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin: Active.");
 
             trigger = Config.Bind("Hotkeys", "Open Roll Menu", new KeyboardShortcut(KeyCode.D, KeyCode.LeftControl));
+
+            updateInterval = Config.Bind("Settings", "Update Interval In Milliseconds", 5000).Value;
 
             perColumn = Config.Bind("Settings", "Entries Per Column", 11).Value;
 
@@ -48,6 +54,13 @@ namespace LordAshes
         /// </summary>
         public void Update()
         {
+            if(DateTime.UtcNow.Subtract(lastUpdateTime).TotalMilliseconds>updateInterval)
+            {
+                UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin: Updating Character Sheet Data.");
+                UpdateCharacterSheets();
+                lastUpdateTime = DateTime.UtcNow;
+            }
+
             if (StrictKeyCheck(trigger.Value))
             {
                 showMenu = !showMenu;
@@ -82,21 +95,12 @@ namespace LordAshes
                     CreaturePresenter.TryGetAsset(LocalClient.SelectedCreatureId, out asset);
                     if (asset != null)
                     {
-                        if (!rollMacrosByCharaceter.ContainsKey(GetCreatureName(asset.Creature)))
+                        UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin: Character Selected When Dice Menu IS Open");
+                        if (rollMacrosByCharaceter.ContainsKey(GetCreatureName(asset)))
                         {
-                            Debug.Log("New Characater '"+ GetCreatureName(asset.Creature) + "'. Looking Up Roll Macros...");
-                            if (FileAccessPlugin.File.Exists(GetCreatureName(asset.Creature) + ".dsm"))
-                            {
-                                Debug.Log("Using Defined Roll Macros...");
-                                rollMacrosByCharaceter.Add(GetCreatureName(asset.Creature), FileAccessPlugin.File.ReadAllLines(GetCreatureName(asset.Creature) + ".dsm"));
-                            }
-                            else
-                            {
-                                Debug.Log("Using Default Roll Macros...");
-                                rollMacrosByCharaceter.Add(GetCreatureName(asset.Creature), rollMacros);
-                            }
+                            UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin: Character Data Obtained");
+                            rollMacros = rollMacrosByCharaceter[GetCreatureName(asset)];
                         }
-                        rollMacros = rollMacrosByCharaceter[GetCreatureName(asset.Creature)];
                     }
                 }
 
@@ -121,16 +125,16 @@ namespace LordAshes
                 {
                     if (rollMacros[i] != "")
                     {
-                        if (GUI.Button(new Rect(5 + xOffset, 50 + yOffset, 300, 40), GetName(rollMacros[i]), gs1))
+                        if (GUI.Button(new Rect(5 + xOffset, 50 + yOffset, 300, 40), GetRollName(rollMacros[i]), gs1))
                         {
                             showMenu = false;
-                            CreateDice(GetName(rollMacros[i]), GetFormula(rollMacros[i]));
+                            CreateDice(GetRollName(rollMacros[i]), GetFormula(rollMacros[i]));
                             break;
                         }
                         if (GUI.Button(new Rect(5 + xOffset, 50 + 40 + yOffset, 300, 25), GetFormula(rollMacros[i]), gs2))
                         {
                             showMenu = false;
-                            CreateDice(GetName(rollMacros[i]), GetFormula(rollMacros[i]));
+                            CreateDice(GetRollName(rollMacros[i]), GetFormula(rollMacros[i]));
                             break;
                         }
                     }
@@ -161,7 +165,7 @@ namespace LordAshes
             p.Start();
         }
 
-        public string GetCreatureName(Creature creature)
+        public string GetCreatureName(CreatureBoardAsset creature)
         {
             string name = ((creature.Name != null) ? creature.Name : creature.CreatureId.ToString());
             if(name.IndexOf("<size=0")>-1)
@@ -171,7 +175,7 @@ namespace LordAshes
             return name;
         }
 
-        public string GetName(string txt)
+        public string GetRollName(string txt)
         {
             return txt.Substring(0, txt.IndexOf("[")).Replace(" "," ").Trim();
         }
@@ -180,6 +184,32 @@ namespace LordAshes
         {
             txt = txt.Substring(txt.IndexOf("[")+1);
             return txt.Substring(0, txt.IndexOf("]")).Trim();
+        }
+
+        public void UpdateCharacterSheets()
+        {
+            // Use temporary storage to ensure character rolls are available while performing update
+            Dictionary<string, string[]> characeterSheetData = new Dictionary<string, string[]>();
+            // Find each DSM file
+            string[] characterSheetFiles = FileAccessPlugin.File.Find(".dsm");
+            // Process each DSM file
+            foreach (string characterSheetFile in characterSheetFiles)
+            {
+                // Get creature name from file name
+                string creatureName = System.IO.Path.GetFileNameWithoutExtension(characterSheetFile);
+                // Add contents of DSM file to character sheet dictionary
+                UnityEngine.Debug.Log("Lord Ashes Dice Selection Plugin: Updating Character Sheet Data For '"+creatureName+"'.");
+                if (!characeterSheetData.ContainsKey(creatureName))
+                {
+                    characeterSheetData.Add(creatureName, FileAccessPlugin.File.ReadAllLines(characterSheetFile));
+                }
+                else
+                {
+                    Debug.LogWarning("Lord Ashes Dice Selection Plugin: Multiple Chartacter Sheets For '" + creatureName + "'");
+                }
+            }
+            // Switch over to the newly read DSM content
+            rollMacrosByCharaceter = characeterSheetData;
         }
 
         /// <summary>
